@@ -1,8 +1,8 @@
-import comet_llm
 from langchain.callbacks.base import BaseCallbackHandler
 from typing import Dict, Any
 
 from .constants import *
+from .utils import log_prompt
 
 class CometLLMMonitoringHandler(BaseCallbackHandler):
     """
@@ -31,19 +31,12 @@ class CometLLMMonitoringHandler(BaseCallbackHandler):
         """
 
         should_log_prompt = "metadata" in kwargs
+        
         if should_log_prompt:
-            metadata = kwargs["metadata"]
-
-            comet_llm.log_prompt(
-                project=self._project_name,
-                prompt=metadata["prompt"],
-                output=outputs["answer"],
-                prompt_template_variables=metadata["prompt_template_variables"],
-                metadata={
-                    "usage.prompt_tokens": metadata["usage.prompt_tokens"],
-                    "usage.total_tokens": metadata["usage.total_tokens"],
-                    "usage.actual_new_tokens": metadata["usage.actual_new_tokens"],
-                    "model": self._llm_model_id,
-                },
-                duration=metadata["duration_milliseconds"],
-            )
+            log_data_dict = kwargs["metadata"]
+            
+            log_data_dict['project'] = self._project_name
+            log_data_dict['output'] = outputs["answer"]
+            log_data_dict['model'] = self._llm_model_id
+            
+            log_prompt(log_data_dict)

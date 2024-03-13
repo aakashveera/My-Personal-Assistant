@@ -3,15 +3,13 @@ warnings.filterwarnings("ignore")
 
 import gradio as gr
 from typing import List
-from threading import Thread
 
-from .chatbot import PersonalAssistant
 from .utils import create_logger
+from .mistral_client import MistralAPIClient
 
 logger = create_logger("logs/outputs.log")
 
-
-bot = PersonalAssistant()
+client = MistralAPIClient()
 
 # === Gradio Interface ===
 
@@ -27,20 +25,12 @@ def predict(message: str, history: List[List[str]], about_me: str):
     Returns:
         str: The generated response.
     """
-
-    generate_kwargs = {
-        "question": message,
-        "to_load_history": history,
-    }
-
-    if bot.is_streaming:
-        t = Thread(target=bot.answer, kwargs=generate_kwargs)
-        t.start()
-
-        for partial_answer in bot.stream_answer():
-            yield partial_answer
-    else:
-        yield bot.answer(**generate_kwargs)
+    
+    response_text = ''
+    
+    for text in client.stream_answer(message, history):
+        response_text += text
+        yield response_text
 
 
 demo = gr.ChatInterface(

@@ -1,8 +1,9 @@
 import re
 import yaml
 import logging
+import comet_llm
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union, Dict
 
 def create_logger(log_file_path:str)->logging.Logger:
     """
@@ -72,3 +73,25 @@ def parse_chat_history(chat_text:str)->List[Tuple[str,str]]:
     ai_matches = ai_pattern.findall(chat_text)
 
     return [(human.strip(),ai.strip()) for human,ai in zip(human_matches,ai_matches)]
+
+
+def log_prompt(log_dict: Dict[str,Union[str,int]]):
+    """_summary_
+
+    Args:
+        log_dict (Dict[str,Union[str,int]]): _description_
+    """
+    
+    comet_llm.log_prompt(
+        project=log_dict['project'],
+        prompt=log_dict['prompt'],
+        output=log_dict['output'],
+        prompt_template_variables=log_dict['prompt_template_variables'],
+        metadata={
+            "usage.prompt_tokens": log_dict['prompt_tokens'],
+            "usage.total_tokens": log_dict['total_tokens'],
+            "usage.actual_new_tokens": log_dict['actual_new_tokens'],
+            "model": log_dict['model'],
+        },
+        duration=log_dict['duration']
+        )

@@ -1,0 +1,78 @@
+name: Personal Assistant Continuous Deployment
+
+on: workflow_dispatch
+
+jobs:
+    build-and-push:
+        name: Build and push docker image to ECR
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Configure AWS Creds
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ${{ secrets.AWS_REGION }}
+
+            - name: Login to ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Build, tag, and push image to Amazon ECR
+              env:
+                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPO }}
+              run: |
+                docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+                docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+     
+    deploy-image:
+        name: Deploy the latest image
+        needs: build-and-push
+        runs-on: self-hosted
+
+        steps:
+          - name: Checkout Code
+            uses: actions/checkout@v4
+
+          - name: Configure AWS Creds
+            uses: aws-actions/configure-aws-credentials@v4
+            with:
+              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              aws-region: ${{ secrets.AWS_REGION }}
+
+          - name: Login to ECR
+            id: login-ecr
+            uses: aws-actions/amazon-ecr-login@v2
+
+          - name: Install aws-cli
+            run: sudo apt install awscli -y
+          
+          - name: Retrieve ECR login credentials
+            run: aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REGISTRY_URL }}
+
+          - name: Stop old container
+            run: docker stop personal_assistant || true
+
+          - name: Remove old container
+            run: docker rm personal_assistant || true
+
+          - name: Remove old image
+            run: docker rmi ${{ secrets.AWS_ECR_REGISTRY_URL }}/${{ secrets.AWS_ECR_REPO }}:latest || true
+              
+          - name: Pull new docker image
+            run:  docker pull ${{ secrets.AWS_ECR_REGISTRY_URL }}/${{ secrets.AWS_ECR_REPO }}:latest
+
+          - name: Start the container
+            env:
+                MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+                COMET_PROJECT_NAME: ${{ secrets.COMET_PROJECT_NAME }}
+                COMET_API_KEY: ${{ secrets.COMET_API_KEY }}
+                COMET_WORKSPACE: ${{ secrets.COMET_WORKSPACE }}
+
+            run: docker run -p 80:7860 -d -e MISTRAL_API_KEY=${MISTRAL_API_KEY} -e COMET_WORKSPACE=${COMET_WORKSPACE} -e COMET_PROJECT_NAME=${COMET_PROJECT_NAME} -e COMET_API_KEY=${COMET_API_KEY} --name personal_assistant ${{ secrets.AWS_ECR_REGISTRY_URL }}/${{ secrets.AWS_ECR_REPO }}:latest

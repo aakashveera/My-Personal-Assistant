@@ -1,10 +1,10 @@
 # Use the specified image as the base
 FROM python:3.10-slim-bullseye as release
 
-COPY ./src/llm_api/requirements.txt ./
+COPY ./src/llm_api/requirments.txt ./
 
 # Install Poetry using pip and clear cache
-RUN pip install --no-cache-dir -r ./requirements.txt
+RUN pip install --no-cache-dir -r ./requirments.txt
 
 # Set the working directory
 WORKDIR /app

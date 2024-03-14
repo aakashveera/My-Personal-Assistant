@@ -2,6 +2,7 @@ import os
 from typing import List, Tuple, Iterable
 
 from langchain import chains
+from langchain.callbacks import FileCallbackHandler
 from langchain.memory import ConversationBufferMemory
 
 from .constants import *
@@ -40,6 +41,7 @@ class PersonalAssistant:
         self._llm_inference_temperature = llm_inference_temperature
         self._device = device
 
+        logger.info("Building a huggingface inference pipeline")
         self._llm_agent, self._streamer, self._eos_token = build_pipeline(
             model_name=self._llm_model_id,
             device=self._device,
@@ -101,8 +103,9 @@ class PersonalAssistant:
             callbacks=callbacks,
         )
         
-        
         logger.info("Building 2/2 - Connecting chains into SequentialChain")
+        log_handler = FileCallbackHandler(LOGFILE_PATH)
+        
         seq_chain = StatelessMemorySequentialChain(
             memory=ConversationBufferMemory(
                 memory_key="chat_history",
@@ -114,6 +117,7 @@ class PersonalAssistant:
             input_variables=["question", "to_load_history"],
             output_variables=["answer"],
             verbose=True,
+            callbacks=[log_handler]
         )
 
         logger.info("Done building SequentialChain.")

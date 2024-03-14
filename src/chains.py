@@ -6,9 +6,11 @@ from langchain.callbacks.manager import CallbackManagerForChainRun
 from langchain.chains.base import Chain
 from langchain.llms import HuggingFacePipeline
 
-from .constants import INSTRUCTION_TEMPLATE, MODEL_NAME
-from .utils import parse_chat_history_as_tuples, filter_old_messages, convert_chat_history_as_string
+from .constants import INSTRUCTION_TEMPLATE, MODEL_NAME, LOGFILE_PATH
+from .utils import parse_chat_history_as_tuples, filter_old_messages, convert_chat_history_as_string, create_logger
 from .model import get_tokenizer
+
+logger = create_logger(LOGFILE_PATH)
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
     """
@@ -98,6 +100,8 @@ class LLMChain(Chain):
                 "chat_history": inputs["chat_history"],
             }
         )
+        
+        logger.info(f"Preparing response for the prompt")
 
         start_time = time.time()
         response = self.hf_pipeline(prompt["prompt"])
@@ -110,6 +114,8 @@ class LLMChain(Chain):
         prompt['payload']['chat_history'] = convert_chat_history_as_string(prompt['payload']['chat_history'])
 
         if run_manager:
+            logger.info(f"Logging the prompt data onto comet-ml")
+            
             run_manager.on_chain_end(
                 outputs={
                     "answer": response,
@@ -133,6 +139,8 @@ class LLMChain(Chain):
     
     
     def _get_inference_prompt(self, sample: Dict[str, str]) -> Dict[str, Union[str, Dict]]:
+        
+        logger.info(f"Preparing prompt for response generation")
         
         current_query = sample['question']
         chat_history = parse_chat_history_as_tuples(sample['chat_history'])

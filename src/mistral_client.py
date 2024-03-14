@@ -8,7 +8,9 @@ from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
 
 from .constants import *
-from .utils import log_prompt, filter_old_messages, post_process_output
+from .utils import log_prompt, filter_old_messages, post_process_output, create_logger
+
+logger = create_logger(LOGFILE_PATH)
 
 class MistralAPIClient:
     
@@ -25,8 +27,8 @@ class MistralAPIClient:
             api_key (Optional[str], optional): _description_. Defaults to None.
         """
         
-        self.client = self._get_client(api_key)
         self.model_name = model
+        self.client = self._get_client(api_key)
         self.temperature = temperature
         self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         
@@ -36,6 +38,8 @@ class MistralAPIClient:
             raise RuntimeError(
                 "Please set the COMET_PROJECT_NAME environment variable."
             )
+            
+        logger.info("Successfully Initiated the LLM API Client")
         
             
     def _get_client(self,
@@ -49,6 +53,8 @@ class MistralAPIClient:
         Returns:
             MistralClient: _description_
         """
+        
+        logger.info(f"Instantiating a {self.model_name} API client.")
         
         if api_key is None:
             try:
@@ -64,6 +70,8 @@ class MistralAPIClient:
 
 
     def _get_inference_prompt(self, question:str, chat_history:List[Tuple[str,str]]) -> List[ChatMessage]:
+        
+        logger.info(f"Preparing prompt for response generation")
         
         messages = []
         
@@ -90,6 +98,8 @@ class MistralAPIClient:
     
     
     def _log_prompt_data(self, question, response, messages, chat_history, time_taken):
+        
+        logger.info(f"Logging the prompt data onto comet-ml")
         
         prompt_tokenids = self.tokenizer.apply_chat_template(messages)
         
@@ -118,6 +128,8 @@ class MistralAPIClient:
         response = ''
         
         start = time.time()
+        
+        logger.info(f"Calling the API Client for response generation")
         stream_response = self.client.chat_stream(model=self.model_name, messages=messages, temperature=self.temperature)
         
         for chunk in stream_response:
@@ -127,6 +139,8 @@ class MistralAPIClient:
             yield post_process_output(response)
             
         response_time = time.time() - start
+        
+        logger.info(f"Response generation Completed..")
         
         logging_thread = threading.Thread(target=self._log_prompt_data, args=(question, response, messages, chat_history, response_time))
         logging_thread.start() 

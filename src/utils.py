@@ -20,22 +20,24 @@ def create_logger(log_file_path:str)->logging.Logger:
     """
     # Create a logger
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-
-    # Create a file handler for the log file
-    file_handler = logging.FileHandler(log_file_path)
     
-    # Create a stream handler for console output
-    console_handler = logging.StreamHandler()
+    if not logger.handlers:
+        logger.setLevel(logging.INFO)
 
-    # Create a formatter
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
+        # Create a file handler for the log file
+        file_handler = logging.FileHandler(log_file_path)
+        
+        # Create a stream handler for console output
+        console_handler = logging.StreamHandler()
 
-    # Add both handlers to the logger
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
+        # Create a formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+
+        # Add both handlers to the logger
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
 
     return logger
 

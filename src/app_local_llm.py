@@ -6,10 +6,6 @@ from typing import List
 from threading import Thread
 
 from .chatbot import PersonalAssistant
-from .utils import create_logger
-
-logger = create_logger("logs/outputs.log")
-
 
 bot = PersonalAssistant()
 

@@ -4,10 +4,8 @@ warnings.filterwarnings("ignore")
 import gradio as gr
 from typing import List
 
-from .utils import create_logger
 from .mistral_client import MistralAPIClient
 
-logger = create_logger("logs/outputs.log")
 
 client = MistralAPIClient()
 

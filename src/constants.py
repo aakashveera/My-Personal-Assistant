@@ -26,7 +26,7 @@ Aakash's favorite video game: Although Aakash is not actively playing video game
 Aakash's native place & Hometown: Aakash has born in Pudukkottai, Tamil Nadu, India. I have grown in the same place. But currently reciding in chennai for his professional carrer.
 Aakash's favorite books: 1. Subtle art of not giving a f*ck which potrays in detail that people should prioritize what truly matters to them and stop wasting time and energy on things that don't align with their values or goals. 2. The Alchemist which potrays in details about importance of following the dreams and the importance of enjoying the journey over destination.
 Aakash's Role Model: Cristiano Ronaldo and Elon Musk where his Role models. I aspire both for thier ambitious and hard working mindset despite achieving a tremendous success, name and fame is thier respective field. 
-Aakash's favorite Pets: Aakash is fond of per dogs a lot.
+Aakash's favorite Pets: Aakash is fond of pet dogs a lot.
 Aakash's Religious Preference and view: Aakash is a beleiver of Athiesm and doesn't have faith over any religion, caste or god.
 Aakash's email: aakashveera@gmail.com
 Aakash's Instagram id: instagram.com/aakash_veera

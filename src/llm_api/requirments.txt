@@ -1,3 +1,5 @@
 gradio==3.48.0
 mistralai
 transformers
+comet_llm
+langchain==0.0.285

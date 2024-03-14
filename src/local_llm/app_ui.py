@@ -25,7 +25,7 @@ def predict(message: str, history: List[List[str]], about_me: str):
 
     kwargs = {
         "question": message,
-        "to_load_history": history,
+        "chat_history": history,
     }
     
     #If bot has streaming mode enabled then get the reponse to the query in streaming mode. 

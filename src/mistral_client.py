@@ -8,7 +8,7 @@ from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
 
 from .constants import *
-from .utils import log_prompt
+from .utils import log_prompt, filter_old_messages, post_process_output
 
 class MistralAPIClient:
     
@@ -77,7 +77,7 @@ class MistralAPIClient:
                 messages.append(ChatMessage(role='user',content=prompt))
                 
             messages.append(ChatMessage(role='assistant',content=response_text))
-        
+            messages = filter_old_messages(messages, self.tokenizer)
         
         if not messages:
             prompt = INSTRUCTION_TEMPLATE + self._get_templated_query(question)
@@ -124,7 +124,7 @@ class MistralAPIClient:
             text = chunk.choices[0].delta.content
             response += text
             
-            yield text
+            yield post_process_output(response)
             
         response_time = time.time() - start
         

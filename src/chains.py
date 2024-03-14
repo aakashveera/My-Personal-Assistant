@@ -7,7 +7,7 @@ from langchain.chains.base import Chain
 from langchain.llms import HuggingFacePipeline
 
 from .constants import INSTRUCTION_TEMPLATE, MODEL_NAME
-from .utils import parse_chat_history
+from .utils import parse_chat_history_as_tuples, filter_old_messages, convert_chat_history_as_string
 from .model import get_tokenizer
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
@@ -107,6 +107,7 @@ class LLMChain(Chain):
         num_prompt_tokens = len(self.tokenizer(prompt["prompt"]))
         num_response_tokens = len(self.tokenizer(response))
         total_tokens = num_prompt_tokens + num_response_tokens
+        prompt['payload']['chat_history'] = convert_chat_history_as_string(prompt['payload']['chat_history'])
 
         if run_manager:
             run_manager.on_chain_end(
@@ -117,10 +118,10 @@ class LLMChain(Chain):
                 metadata={
                     "prompt": prompt["prompt"],
                     "prompt_template_variables": prompt["payload"],
-                    "usage.prompt_tokens": num_prompt_tokens,
-                    "usage.total_tokens": total_tokens,
-                    "usage.actual_new_tokens": num_response_tokens,
-                    "duration_milliseconds": duration_milliseconds,
+                    "prompt_tokens": num_prompt_tokens,
+                    "total_tokens": total_tokens,
+                    "actual_new_tokens": num_response_tokens,
+                    "duration": duration_milliseconds,
                 },
             )
 
@@ -134,8 +135,8 @@ class LLMChain(Chain):
     def _get_inference_prompt(self, sample: Dict[str, str]) -> Dict[str, Union[str, Dict]]:
         
         current_query = sample['question']
-        chat_history = parse_chat_history(sample['chat_history'])       
-                
+        chat_history = parse_chat_history_as_tuples(sample['chat_history'])
+        
         messages = []
         
         for index,(past_question, response_text) in enumerate(chat_history):
@@ -148,7 +149,7 @@ class LLMChain(Chain):
                 messages.append({"role": "user", "content": prompt})
                 
             messages.append({"role": "assistant", "content": response_text})
-        
+            messages = filter_old_messages(messages, self.tokenizer)
         
         if not messages:
             prompt = INSTRUCTION_TEMPLATE + self._get_templated_query(current_query)

@@ -2,10 +2,10 @@ import os
 from typing import List, Tuple, Iterable
 
 from langchain import chains
-from langchain.memory import ConversationBufferWindowMemory
+from langchain.memory import ConversationBufferMemory
 
 from .constants import *
-from .utils import create_logger
+from .utils import create_logger, post_process_output
 from .model import build_pipeline
 from .chains import LLMChain, StatelessMemorySequentialChain
 from .handlers import CometLLMMonitoringHandler
@@ -104,11 +104,11 @@ class PersonalAssistant:
         
         logger.info("Building 2/2 - Connecting chains into SequentialChain")
         seq_chain = StatelessMemorySequentialChain(
-            memory=ConversationBufferWindowMemory(
+            memory=ConversationBufferMemory(
                 memory_key="chat_history",
                 input_key="question",
                 output_key="answer",
-                k=10,
+                return_messages=True
             ),
             chains=[llm_generator_chain],
             input_variables=["question", "to_load_history"],
@@ -162,4 +162,4 @@ class PersonalAssistant:
             if new_token != self._eos_token:
                 partial_answer += new_token
 
-                yield partial_answer
+                yield post_process_output(partial_answer)

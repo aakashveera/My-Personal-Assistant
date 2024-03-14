@@ -25,12 +25,9 @@ def predict(message: str, history: List[List[str]], about_me: str):
     Returns:
         str: The generated response.
     """
-    
-    response_text = ''
-    
+        
     for text in client.stream_answer(message, history):
-        response_text += text
-        yield response_text
+        yield text
 
 
 demo = gr.ChatInterface(

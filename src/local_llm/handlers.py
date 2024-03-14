@@ -29,14 +29,11 @@ class CometLLMMonitoringHandler(BaseCallbackHandler):
             outputs (Dict[str, Any]): The output of the LLM model.
             **kwargs (Any): Additional arguments passed to the function.
         """
-
-        should_log_prompt = "metadata" in kwargs
         
-        if should_log_prompt:
-            log_data_dict = kwargs["metadata"]
-            
-            log_data_dict['project'] = self._project_name
-            log_data_dict['output'] = outputs["answer"]
-            log_data_dict['model'] = self._llm_model_id
-            
-            log_prompt(log_data_dict)
+        #Add project name, answer and model to the data dict before passing it to prompt logger        
+        log_data_dict = kwargs["metadata"]
+        log_data_dict['project'] = self._project_name
+        log_data_dict['output'] = outputs["answer"]
+        log_data_dict['model'] = self._llm_model_id
+        
+        log_prompt(log_data_dict)

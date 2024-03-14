@@ -15,14 +15,14 @@ logger = create_logger(LOGFILE_PATH)
 
 class LangChainChatBot:
     """
-    A language chain bot that uses a language model to generate responses to user inputs.
+    A language chain bot that uses a LLM model to generate responses to user inputs.
 
     Args:
-        llm_model_id (str): The ID of the Hugging Face language model to use.
-        device (str): Device to use for inferencing.
-        llm_inference_max_new_tokens (int): The maximum number of new tokens to generate during inference.
-        llm_inference_temperature (float): The temperature to use during inference.
-        streaming (bool): Whether to use the Hugging Face streaming API for inference.
+        llm_model_id (str, optional): The Hugging Face model ID to use to instantiate a LLM. Defaults to MODEL_NAME.
+        device (str, optional): Device to use for inferencing. Defaults to DEVICE.
+        llm_inference_max_new_tokens (int, optional): The maximum number of new tokens to generate during inference. Defaults to MAX_NEW_TOKENS.
+        llm_inference_temperature (float, optional): The temperature to use during inference. Defaults to TEMPERATURE.
+        streaming (bool, optional): Whether to use the Hugging Face streaming API for inference. Defaults to streaming.
         
     Attributes:
         bot_chain (Chain): The language chain that generates responses to user inputs.
@@ -48,7 +48,7 @@ class LangChainChatBot:
             gradient_checkpointing=False,
             use_streamer=streaming
         )
-        self.bot_chain = self.build_chain()
+        self.bot_chain = self.build_chain() #Build the chabot chain
         
         
     @property
@@ -56,34 +56,13 @@ class LangChainChatBot:
         return self._streamer is not None
     
     
-    def build_chain(self)-> chains.SequentialChain:
-        """
-        Constructs and returns a financial bot chain.
-        This chain is designed to take as input the user description, `about_me` and a `question` and it will
-        connect to the VectorDB, searches the financial news that rely on the user's question and injects them into the
-        payload that is further passed as a prompt to a financial fine-tuned LLM that will provide answers.
+    def _get_comet_project_name(self) -> str:
+        """Get comet project name for logging the prompts via environment variable.
 
-
-        2. LLM Generator: Once the context is extracted,
-        this stage uses it to format a full prompt for the LLM and
-        then feed it to the model to get a response that is relevant to the user's question.
-
-        Returns
-        -------
-        chains.SequentialChain
-            The constructed financial bot chain.
-
-        Notes
-        -----
-        The actual processing flow within the chain can be visualized as:
-        [about: str][question: str] > ContextChain >
-        [about: str][question:str] + [context: str] > FinancialChain >
-        [answer: str]
+        Returns:
+            str: Comet-ml project name as a string. 
         """
         
-        
-        logger.info("Building 1/2 - FinancialBotQAChain")
-
         try:
             comet_project_name = os.environ["COMET_PROJECT_NAME"]
         except KeyError:
@@ -91,6 +70,23 @@ class LangChainChatBot:
                 "Please set the COMET_PROJECT_NAME environment variable."
             )
             
+        return comet_project_name
+    
+    
+    def build_chain(self)-> chains.SequentialChain:
+        """
+        Builds and returns a chatbot chain. This chain is designed to take query as input, 
+        Turn the query onto a prompt as per LLM's requirement and
+        then feed it to the model to get a response that is relevant to the user's question.
+
+        Returns: [chains.SequentialChain]: The constructed chatbot chain.
+        """
+        
+        logger.info("Building 1/2 - FinancialBotQAChain. Initalizaing a prompt logger and LLM agent")
+        
+        comet_project_name = self._get_comet_project_name()
+        
+        #Instantiate a callback handler to log prompts after response generation.
         callbacks = [
             CometLLMMonitoringHandler(
                 project_name=f"{comet_project_name}-monitor-prompts",
@@ -98,6 +94,7 @@ class LangChainChatBot:
             )
         ]
         
+        #Instantiate a LLM chain for generating response.
         llm_generator_chain = LLMChain(
             hf_pipeline=self._llm_agent,
             callbacks=callbacks,
@@ -128,40 +125,36 @@ class LangChainChatBot:
     def answer(
         self,
         question: str,
-        to_load_history: List[Tuple[str, str]] = None,
+        chat_history: List[Tuple[str, str]] = None,
     ) -> str:
-        """
-        Given a short description about the user and a question make the LLM
-        generate a response.
+        """Given a question and past chat messages, generates a response
+           to the current query using the initialized LLM Chain.
 
-        Parameters
-        ----------
-        question : str
-            User question.
+        Args:
+            question (str): A question provided by the user.
+            chat_history (List[Tuple[str, str]], optional): List containing the past conversation's
+                         query & responses as a list of tuples. Defaults to None.
 
-        Returns
-        -------
-        str
-            LLM generated response.
+        Returns:
+            str: A reponse generated for the query.
         """
 
         inputs = {
             "question": question,
-            "to_load_history": to_load_history if to_load_history else [],
+            "to_load_history": chat_history if chat_history else [],
         }
-        response = self.bot_chain.run(inputs)
+        response = self.bot_chain.run(inputs) #Generate response using the llm chain.
 
         return response
     
 
     def stream_answer(self) -> Iterable[str]:
-        """Stream the answer from the LLM after each token is generated after calling `answer()`."""
-
-        assert (
-            self.is_streaming
-        ), "Stream answer not available. Build the bot with `use_streamer=True`."
+        """Stream the answer from the LLM after each token is generated"""
 
         partial_answer = ""
+        
+        #Iterate through each streamed token,
+        #Return the token after post-processing untill eos-token is generated.
         for new_token in self._streamer:
             if new_token != self._eos_token:
                 partial_answer += new_token

@@ -10,28 +10,38 @@ from mistralai.models.chat_completion import ChatMessage
 from src.constants import *
 from src.utils import log_prompt, filter_old_messages, post_process_output, create_logger
 
+#Instantiate a logger.
 logger = create_logger(LOGFILE_PATH)
 
 class MistralAPIClient:
+    """Mistral API Client uses mistral's python-based MistralClient for generating 
+       response via Mistral API Services. Accepts a query and past queries as a input,
+       converts it into prompt, generates response via mistral llm endpoint. Streams 
+       the response in real-time after applying post-processing.
+    """
     
-    def __init__(self,
-                 model: str = API_ENDPOINT_NAME,
-                 temperature: float = TEMPERATURE,
-                 api_key:Optional[str]=None
-                 ):
-        """_summary_
+    def __init__(
+        self,
+        model: str = API_ENDPOINT_NAME,
+        temperature: float = TEMPERATURE,
+        api_key:Optional[str]=None
+        ):
+        """Initialize the MistralAPIClient members and methogs
 
         Args:
-            model (str, optional): _description_. Defaults to API_ENDPOINT_NAME.
-            temperature (float, optional): _description_. Defaults to TEMPERATURE.
-            api_key (Optional[str], optional): _description_. Defaults to None.
+            model (str, optional): Model to use for response generation
+                                  via llm endpoint. Defaults to API_ENDPOINT_NAME.
+            temperature (float, optional): Temperature to use for response 
+                                           generation. Defaults to TEMPERATURE.
+            api_key (str, optional): API Key for LLM endpoint. Defaults to None.
         """
         
-        self.model_name = model
-        self.client = self._get_client(api_key)
-        self.temperature = temperature
-        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        self.model_name = model #Mistral model to use for generating response via API client.
+        self.client = self._get_client(api_key) #get mistral llm api client.
+        self.temperature = temperature # set temperature to control variance in the output.
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME) #Load Mistral tokenizer.
         
+        #Set comet project name and API key for logging the prompts and responses.
         try:
             self.comet_project_name = f"{os.environ['COMET_PROJECT_NAME']}-monitor-prompts" 
         except KeyError:
@@ -42,41 +52,66 @@ class MistralAPIClient:
         logger.info("Successfully Initiated the LLM API Client")
         
             
-    def _get_client(self,
-                    api_key:Optional[str]=None
-                    )->MistralClient:
-        """_summary_
+    def _get_client(
+        self,
+        api_key:Optional[str]=None
+        )->MistralClient:
+        """Instantiate a python based MistraClient by passing the mistral API key.
 
         Args:
-            api_key (Optional[str], optional): _description_. Defaults to None.
+            api_key (Optional[str], optional): API Key for Mistral LLM Client. Defaults to None.
 
         Returns:
-            MistralClient: _description_
+            MistralClient: Returns a initialized mistral API client.
         """
         
         logger.info(f"Instantiating a {self.model_name} API client.")
         
+        #If api_key is not provided by user, check for the API key from environment variable.
         if api_key is None:
             try:
                 api_key = os.environ['MISTRAL_API_KEY']
             except:
                 raise ValueError("Either pass the mistral API key while instantiating this class or set 'MISTRAL_API_KEY' environment variable.")
 
-        return MistralClient(api_key=api_key)
+        return MistralClient(api_key=api_key) # return a inintialized mistral client.
 
     
-    def _get_templated_query(self, question):
+    def _get_templated_query(
+        self,
+        question:str
+        )->str:
+        
+        """Converts the query provdied by the user as per the format neccasary by the LLM."""
+        
         return f"""<<<\nQUESTION: {question} >>>.\n\n\n\n\n"""
 
 
-    def _get_inference_prompt(self, question:str, chat_history:List[Tuple[str,str]]) -> List[ChatMessage]:
+    def _get_inference_prompt(
+        self,
+        question:str,
+        chat_history:List[Tuple[str,str]]
+        ) -> List[ChatMessage]:
+        
+        """Convert the given query and past chat history into a prompt as per mistral's prompt template.
+        
+        Args:
+            question (str): Query for which the response has to be generated.
+            chat_history (List): List containing the query & responses as a list of tuples.
+
+        Returns:
+            List: List containing the chats as prompt messages as per mistral template.
+        """
         
         logger.info(f"Preparing prompt for response generation")
         
         messages = []
         
+        #Iterate through the question & answer pair from the past chat history
         for index,(past_question, response_text) in enumerate(chat_history):
             
+            #Attach the instruction_template as a prefix to the query template for first question alone to add general instructions.
+            #Else add only the question in the template format.
             if not index:
                 prompt = INSTRUCTION_TEMPLATE + self._get_templated_query(past_question)
                 messages.append(ChatMessage(role='user',content=prompt))
@@ -84,9 +119,12 @@ class MistralAPIClient:
                 prompt = self._get_templated_query(past_question)
                 messages.append(ChatMessage(role='user',content=prompt))
                 
+            #Add the answer generated by LLM for the query to the message list.
             messages.append(ChatMessage(role='assistant',content=response_text))
             messages = filter_old_messages(messages, self.tokenizer)
         
+        #Add the current query to the messages list in the prompt format.
+        #Attach instruction template as prefix to the query if current query is the first query.
         if not messages:
             prompt = INSTRUCTION_TEMPLATE + self._get_templated_query(question)
             messages.append(ChatMessage(role='user',content=prompt))
@@ -97,17 +135,27 @@ class MistralAPIClient:
         return messages
     
     
-    def _log_prompt_data(self, question, response, messages, chat_history, time_taken):
+    def _log_prompt_data(
+        self,
+        question: str,
+        response: str,
+        messages: List,
+        chat_history: str,
+        time_taken: float
+        ):
+        
+        """Helper function which uses the comet_llm logger to log all the data and metadata related to the prompt."""
         
         logger.info(f"Logging the prompt data onto comet-ml")
         
+        #Convert the messages into prompt tokens for counting.
         prompt_tokenids = self.tokenizer.apply_chat_template(messages)
         
-        num_prompt_tokens = len(prompt_tokenids)
-        num_response_tokens = len(self.tokenizer(response))
-        total_tokens = num_prompt_tokens + num_response_tokens
+        num_prompt_tokens = len(prompt_tokenids) #Get total prompt tokens
+        num_response_tokens = len(self.tokenizer(response)) #Get total response tokens
+        total_tokens = num_prompt_tokens + num_response_tokens #Get total number of tokens
         
-        
+        #Prepare a dictionary using all the necassary data & metadata related to the prompt.
         log_dict = {"project":self.comet_project_name,
                     "model": self.model_name,
                     "prompt":self.tokenizer.decode(prompt_tokenids),
@@ -118,29 +166,45 @@ class MistralAPIClient:
                     "duration": time_taken,
                     "output": response}
         
+        #log the dictionary onto comet-ml dashboard.
         log_prompt(log_dict)
     
 
-    def stream_answer(self, question, chat_history):
+    def stream_answer(
+        self,
+        question: str,
+        chat_history: List[Tuple[str, str]]
+        )->Iterator[str]:
+        """_summary_
+
+        Args:
+            question (str): A query provided by the user.
+            chat_history (list): Past conversation history as a list of (query, response) tuple pairs.
+
+        Yields:
+            Iterator[str]: A iterator object containing response text as chunks.
+        """
         
+        #Convert the query and past chats into a prompt message list
         messages = self._get_inference_prompt(question, chat_history)
-        messages = [ChatMessage(role='user',content="Say 'Hi'.")]
-        response = ''
         
+        response = '' 
         start = time.time()
-        
         logger.info(f"Calling the API Client for response generation")
+        
+        #Get response to the prompt via mistral chat completion endpoint.
         stream_response = self.client.chat_stream(model=self.model_name, messages=messages, temperature=self.temperature)
         
+        #Iterate though each generated token in streaming mode
+        #Post-process it and pass the response to the user.
         for chunk in stream_response:
             text = chunk.choices[0].delta.content
             response += text
-            
             yield post_process_output(response)
             
         response_time = time.time() - start
-        
         logger.info(f"Response generation Completed..")
         
+        #Log the prompt details onto comet-ml dashboard. Run it as thread so that it don't have to wait till the logging is over.
         logging_thread = threading.Thread(target=self._log_prompt_data, args=(question, response, messages, chat_history, response_time))
         logging_thread.start() 

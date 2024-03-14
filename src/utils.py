@@ -10,7 +10,7 @@ from langchain.schema.messages import HumanMessage, AIMessage
 
 def create_logger(log_file_path:str)->logging.Logger:
     """
-    Create and configure a logger at INFO level with a log file.
+    Creates and configures a logger with both filehandler and consolde handler at INFO level.
 
     Args:
         log_file_path (str): The path to the log file.
@@ -42,50 +42,40 @@ def create_logger(log_file_path:str)->logging.Logger:
     return logger
 
 
-def load_yaml(path: Path) -> dict:
-    """
-    Load a YAML file from the given path and return its contents as a dictionary.
-
-    Args:
-        path (Path): The path to the YAML file.
-
-    Returns:
-        dict: The contents of the YAML file as a dictionary.
-    """
-
-    with path.open("r") as f:
-        config = yaml.safe_load(f)
-
-    return config
-
-
-def parse_chat_history_as_tuples(message_list:List[Tuple[HumanMessage, AIMessage]])->List[Tuple[str,str]]:
-    """Helper function to parse the chat history stored in memory chain
+def parse_chat_history_as_tuples(
+    message_list: List[Union[HumanMessage, AIMessage]]
+    )->List[Tuple[str,str]]:
+    
+    """Helper function to parse the chat history's content 
 
     Args:
         message_list (List): Previous chat messages text stored in Langchain's memory
 
     Returns:
-        List[Tuple[str,str]]: Parsed chat Items.
+        List[Tuple[str,str]]: Parsed chat Items as a List of tuples.[(human_query, ai_response)].
     """
     
     parsed_messages_list = []  
     
     try:
-        assert len(message_list)%2 == 0 
+        assert len(message_list)%2 == 0 #Each query should have a response and so the number of chat items should be even.
         
-        for index in range(0,len(message_list)-2,2):
+        for index in range(0,len(message_list)-2,2): 
+            #Item at index is query and item and index+1 will its coresponding answer. Fetch the content and append the pair as a tuple after striping.
             parsed_messages_list.append((message_list[index].content.strip(), message_list[index+1].content.strip()))
             
     except:
         human_messages, ai_messages = [], []
         
+        #Incase if the count doesn't match up. Iterate through each message
+        #If the message is Human generated add to human_messages list else add to ai_messages list
         for message in message_list:
             if type(message)==HumanMessage:
                 human_messages.append(message.content.strip())
             else:
                 ai_messages.append(ai_messages.content.strip())
         
+        #Zip and pack the messages as tuples.
         for human,ai in zip(human_messages, ai_messages):
             parsed_messages_list.append((human,ai))      
     
@@ -93,19 +83,28 @@ def parse_chat_history_as_tuples(message_list:List[Tuple[HumanMessage, AIMessage
 
 
 def filter_old_messages(messages: List, tokenizer: AutoTokenizer)->List:
-    """_summary_
+    """Function to the filter out the old messages on history before preparing the prompt. 
+       Filters the past (query, response) pair from history when the total tokens count exceeds MAX_ACCEPTED_TOKENS.
+       Mistral Instruct model has a context length of 4096.
 
     Args:
-        messageList (List): _description_
-        tokenizer (AutoTokenizer): _description_
+        messageList (List): A list containing the chat prompts. 
+        tokenizer (AutoTokenizer): Tokenizer object to count the number of token in the processed prompt.
 
     Returns:
-        List: _description_
+        List: A list containing the filtered messages
     """
     
+    MAX_ACCEPTED_TOKENS = 3500
+    
+    #Convert the messages into prompt tokens.
     tokens = tokenizer.apply_chat_template(messages, return_tensors="pt")[0]
-            
-    while len(tokens)>3500:
+    
+    #Remove the question and answer pair from the messages untill the total token count in the prompt exceeds the limit.
+    #Always Leave the first 2 conversations to preserve the initial instructions. 
+    #Remove the prompts from the middle for getting better response. 
+    while len(tokens)>MAX_ACCEPTED_TOKENS:
+        
         if len(messages)>4:
             messages.pop(4)
             messages.pop(4)
@@ -114,17 +113,18 @@ def filter_old_messages(messages: List, tokenizer: AutoTokenizer)->List:
             messages.pop(2)
         else:
             break
-            
+        
+        #Recompute the new prompt tokens based on filtered messages.
         tokens = tokenizer.apply_chat_template(messages, return_tensors="pt")[0]
         
     return messages
 
 
 def log_prompt(log_dict: Dict[str,Union[str,int]]):
-    """_summary_
+    """Log the query, response, prompt and other metadata onto the comet-ml dashboard for tracking.
 
     Args:
-        log_dict (Dict[str,Union[str,int]]): _description_
+        log_dict (Dict[str,Union[str,int]]): A dictionary containing all the necassary data and metadata for logging the prompt.
     """
     
     comet_llm.log_prompt(
@@ -143,35 +143,40 @@ def log_prompt(log_dict: Dict[str,Union[str,int]]):
    
  
 def post_process_output(text: str)-> str:
-    """_summary_
+    """Post-process the commonly occuring errors/patterns from the generated response.
 
     Args:
-        text (str): _description_
+        text (str): Response string generated by the AI model.
 
     Returns:
-        str: _description_
+        str: Response string after applying post-processing.
     """
     
+    #Remove the trailing spaces.
     text = text.lstrip()
     
+    #Remove the 'Diya:' token from the beginning of the response if it exists. 
     if 'Diya:' == text[:5]:
         return text[5:]
+    
     return text
 
 
 def convert_chat_history_as_string(messages: List[Union[HumanMessage, AIMessage]])-> str:
-    """_summary_
+    """Convert the chat_history list with conversations into a single string.
+       This is necassary while logging the prompt details.
 
     Args:
-        messages (List[Union[HumanMessage, AIMessage]]): _description_
+        messages (List[Union[HumanMessage, AIMessage]]): A list containing chat history.
 
     Returns:
-        str: _description_
+        str: A concatenated string containing all the all the past queries and responses.
     """
     
     result_string = ''
     
-    
+    #Iterate through each message and figure out whether the message is human provided or LLM generated.
+    #If human generated append to the result with 'Human:' prefix else append to the result with 'AI:' prefix followed by a new line.
     for message in messages:
         if type(message)==HumanMessage:
             result_string += f'Human: {message.content.strip()}\n'

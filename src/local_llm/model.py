@@ -47,24 +47,26 @@ class StopOnTokens(StoppingCriteria):
 
         return False
 
-    
+
 def get_model(
     model_name:str = 'mistralai/Mistral-7B-Instruct-v0.2',
     device: str = 'cuda:0',
     gradient_checkpointing: bool = True,
 ) -> AutoModelForCausalLM:
     """
-    Function that builds a 4-bit quantized LLM model based on the given HuggingFace's model name:
+    Build a 4-bit quantized LLM model based on the given HuggingFace's 
+    model name on the specified device.
 
     Args:
         model_name (str,optional): A pretrained huggingface model name. Defaults to mistralai/Mistral-7B-Instruct-v0.2
-        device (str, optional): Device to use while loading the model.
-        gradient_checkpointing (bool): Whether or not to enable gradient checkpoint while training.
+        device (str, optional): Device to use while loading the model. Defaults to cuda:0
+        gradient_checkpointing (bool, optional): Whether or not to enable gradient checkpoint while training. Defults to True.
 
     Returns:
         AutoModelForCausalLM: A built huggigface model.
     """
     
+    #Initialize a bnb 4-bit quantization config file 
     bnb_config =  BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_use_double_quant=True,
@@ -72,12 +74,14 @@ def get_model(
         bnb_4bit_compute_dtype=torch.bfloat16,
     )
 
+    #Instantiate the LLM based on the created quantization config with using device specified.
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         quantization_config=bnb_config,
         device_map=device
         )
     
+    #Enable disble gradient_checkpointing to optimize memory usage.
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()
         model.config.use_cache = (
@@ -102,14 +106,15 @@ def get_tokenizer(
         AutoTokenizer: A pretrained tokenizer object
     """
     
-    tokenizer = AutoTokenizer.from_pretrained(tokenzier_name)
+    tokenizer = AutoTokenizer.from_pretrained(tokenzier_name) #Initialize a tokenizer
     
+    #Add padding token and padding direction.
     tokenizer.padding_side = 'right'
     tokenizer.pad_token = tokenizer.eos_token
 
     return tokenizer
-    
-    
+
+
 def build_pipeline(
     model_name:str = 'mistralai/Mistral-7B-Instruct-v0.2',
     device: str = 'cuda:0',
@@ -121,7 +126,7 @@ def build_pipeline(
 
     Args:
         model_name (str,optional): A pretrained huggingface model name. Defaults to mistralai/Mistral-7B-Instruct-v0.2
-        device (str, optional): Device to use while loading the model.
+        device (str, optional): Device to use while loading the model. Defaults to 'cuda:0'
         gradient_checkpointing (bool, optional): Whether to use gradient checkpointing. Defaults to False.
         use_streamer (bool, optional): Whether to use a text iterator streamer. Defaults to False.
 
@@ -130,15 +135,18 @@ def build_pipeline(
             and the text iterator streamer (if used).
     """
 
+    #Instantiate a LLM model
     model = get_model(
         model_name=model_name,
         device=device,
         gradient_checkpointing=gradient_checkpointing,
     )
-    model.eval()
+    model.eval() #Turn the model onto evaluation mode
     
-    tokenizer = get_tokenizer(model_name)
+    tokenizer = get_tokenizer(model_name) #Instantiate a tokenizer
 
+    #Initialize a Text Streamer based on args passed.
+    #Specify a stopping criteria using eos token if streamer is about to used.
     if use_streamer:
         streamer = TextIteratorStreamer(
             tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True
@@ -149,6 +157,7 @@ def build_pipeline(
         streamer = None
         stopping_criteria = StoppingCriteriaList([])
 
+    #Initialize a hugginface text generation pipeline and specify the neccasary args
     pipe = pipeline(
         "text-generation",
         model=model,

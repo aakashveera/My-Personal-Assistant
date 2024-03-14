@@ -98,7 +98,7 @@ def filter_old_messages(messages: List, tokenizer: AutoTokenizer)->List:
     MAX_ACCEPTED_TOKENS = 3500
     
     #Convert the messages into prompt tokens.
-    tokens = tokenizer.apply_chat_template(messages, return_tensors="pt")[0]
+    tokens = tokenizer.apply_chat_template(messages)
     
     #Remove the question and answer pair from the messages untill the total token count in the prompt exceeds the limit.
     #Always Leave the first 2 conversations to preserve the initial instructions. 
@@ -115,7 +115,7 @@ def filter_old_messages(messages: List, tokenizer: AutoTokenizer)->List:
             break
         
         #Recompute the new prompt tokens based on filtered messages.
-        tokens = tokenizer.apply_chat_template(messages, return_tensors="pt")[0]
+        tokens = tokenizer.apply_chat_template(messages)
         
     return messages
 

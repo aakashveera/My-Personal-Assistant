@@ -1,6 +1,10 @@
 name: Personal Assistant Continuous Deployment
 
-on: workflow_dispatch
+on: 
+  push:
+    branches:
+      - deploy
+  workflow_dispatch:
 
 jobs:
     build-and-push:

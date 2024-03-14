@@ -1,8 +1,8 @@
 from langchain.callbacks.base import BaseCallbackHandler
 from typing import Dict, Any
 
-from .constants import *
-from .utils import log_prompt
+from src.constants import *
+from src.utils import log_prompt
 
 class CometLLMMonitoringHandler(BaseCallbackHandler):
     """

@@ -6,8 +6,8 @@ from langchain.callbacks.manager import CallbackManagerForChainRun
 from langchain.chains.base import Chain
 from langchain.llms import HuggingFacePipeline
 
-from .constants import INSTRUCTION_TEMPLATE, MODEL_NAME, LOGFILE_PATH
-from .utils import parse_chat_history_as_tuples, filter_old_messages, convert_chat_history_as_string, create_logger
+from src.constants import INSTRUCTION_TEMPLATE, MODEL_NAME, LOGFILE_PATH
+from src.utils import parse_chat_history_as_tuples, filter_old_messages, convert_chat_history_as_string, create_logger
 from .model import get_tokenizer
 
 logger = create_logger(LOGFILE_PATH)

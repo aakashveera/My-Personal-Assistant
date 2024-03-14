@@ -4,7 +4,7 @@ warnings.filterwarnings("ignore")
 import gradio as gr
 from typing import List
 
-from .mistral_client import MistralAPIClient
+from .llm_api_client import MistralAPIClient
 
 
 client = MistralAPIClient()

@@ -7,8 +7,8 @@ from transformers import AutoTokenizer
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
 
-from .constants import *
-from .utils import log_prompt, filter_old_messages, post_process_output, create_logger
+from src.constants import *
+from src.utils import log_prompt, filter_old_messages, post_process_output, create_logger
 
 logger = create_logger(LOGFILE_PATH)
 

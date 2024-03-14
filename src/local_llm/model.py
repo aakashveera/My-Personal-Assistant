@@ -12,7 +12,7 @@ from transformers import (
     pipeline
 )
 
-from .constants import *
+from src.constants import *
 
 class StopOnTokens(StoppingCriteria):
     """

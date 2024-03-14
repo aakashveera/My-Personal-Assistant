@@ -5,9 +5,9 @@ import gradio as gr
 from typing import List
 from threading import Thread
 
-from .chatbot import PersonalAssistant
+from .chatbot import LangChainChatBot
 
-bot = PersonalAssistant()
+bot = LangChainChatBot()
 
 # === Gradio Interface ===
 

@@ -5,15 +5,15 @@ from langchain import chains
 from langchain.callbacks import FileCallbackHandler
 from langchain.memory import ConversationBufferMemory
 
-from .constants import *
-from .utils import create_logger, post_process_output
+from src.constants import *
+from src.utils import create_logger, post_process_output
 from .model import build_pipeline
 from .chains import LLMChain, StatelessMemorySequentialChain
 from .handlers import CometLLMMonitoringHandler
 
 logger = create_logger(LOGFILE_PATH)
 
-class PersonalAssistant:
+class LangChainChatBot:
     """
     A language chain bot that uses a language model to generate responses to user inputs.
 

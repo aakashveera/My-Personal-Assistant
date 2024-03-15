@@ -1,0 +1,7 @@
+gradio==3.48.0
+transformers
+torch
+comet_llm
+langchain==0.0.285
+bitsandbytes
+accelerate

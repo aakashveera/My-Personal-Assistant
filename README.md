@@ -9,7 +9,6 @@
 ![Sample-Image-Diya](resources/diya-image.png)
 
 <br>
-<br>
 
 # TECHNICAL DETAILS
 
@@ -25,7 +24,6 @@
 
 - Refer to PRODUCTION DEPLOYMENT section to understand how the pipeline is built.
 
-<br>
 <br>
 
 
@@ -76,7 +74,6 @@
 
 4. Run the application by running `./run_llm_api_app.sh`.
 
-<br>
 <br>
 
 # PRODUCTION DEPLOYMENT.

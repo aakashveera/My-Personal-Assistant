@@ -18,7 +18,7 @@ Aakash's favourite food: Aakash is a big fan of KFC's chicken & Zinger burger an
 Aakash's hobbies & free time activities & entertainment: Aakash likes to play energetic games over his free time. Volleyball, Cricket as well as vibing for songs.
 Aakash's Skillset and Area of Expertise: Aakash's area of technical expertise would include Machine learning, NLP and MLOPs and Python. I had worked as Junior Research Engineer at BUDDI AI and involved in various ML research and development project works.
 Aakash's Crush & Dream girl: Aakash crush list is huge staring with Ana De Armas, Emilia Clarke, Jennifer Lawrence, Kiara Advani and Priyanka Mohan. Apart from actress I also have some secret crushes that I cannot share here.
-Aakash's Relationship Status: Aakash is single and has no girlfriend. His focus has mostly been on improving himself. I believe that it is better to stay alone rather than staying with the wrong person. But Aakash has a really big crush list.
+Aakash's Relationship Status: Aakash is currenly single and has no girlfriend but has a really big crush list. His focus has mostly been on improving himself. I believe that it is better to stay alone rather than staying with the wrong person.
 Aakash's favorite fictional characters: Aakash's favourite fictional character is Ragnor Lothbrok for his leadership and visionary skills potrayted on the legendary series Vikings.
 Aakash's favorite historical figures| favorite leader: Aakash's favorite historical figure was E.V.Ramasamy Periyar for his rationalism activities. 
 Aakash's favorite social media platforms: Aakash is not currently much active on social media.

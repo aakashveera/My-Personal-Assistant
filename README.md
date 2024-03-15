@@ -7,7 +7,6 @@
 - You can have a chat with Diya @ http://3.80.130.244/. Below is a sample screenshot of a short conversation with Diya and its Web UI Interface.
 
 ![Sample-Image-Diya](resources/diya-image.png)
-
 <br>
 
 # TECHNICAL DETAILS
@@ -23,9 +22,7 @@
 - This app is built using best MLOPs practices and deployed as a end-to-end pipeline on AWS EC2(t2.micro) as a docker image using github actions.
 
 - Refer to PRODUCTION DEPLOYMENT section to understand how the pipeline is built.
-
 <br>
-
 
 # STEPS TO RUN LOCALLY
 
@@ -73,7 +70,6 @@
 3. Install the necassary requirements using `pip install -r  src/llm_api/requirements.txt`. (Better create a new virtual env to avoid conflicts).
 
 4. Run the application by running `./run_llm_api_app.sh`.
-
 <br>
 
 # PRODUCTION DEPLOYMENT.

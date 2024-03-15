@@ -31,7 +31,7 @@ def predict(message: str, history: List[List[str]], about_me: str):
 demo = gr.ChatInterface(
     predict,
     textbox=gr.Textbox(
-        placeholder="Ask me a any question",
+        placeholder="Ask me any question",
         label="question",
         container=False,
         scale=5,
@@ -61,4 +61,4 @@ demo = gr.ChatInterface(
 
 
 if __name__ == "__main__":
-    demo.queue().launch(server_name="0.0.0.0", server_port=7860, share=True) #Launch the web app UI.
+    demo.queue(api_open=False).launch(server_name="0.0.0.0", server_port=7860, share=False, show_api=False) #Launch the web app UI.
